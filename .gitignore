@@ -1,0 +1,6 @@
+# ignore libraries 
+lib/*
+
+# ignore data directory
+data/*
+
