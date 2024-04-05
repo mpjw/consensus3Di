@@ -11,9 +11,33 @@ pip install torch transformers sentencepiece
 ```
 
 Required [ProstT5](https://github.com/mheinzinger/ProstT5) software must be cloned from github.
+```bash
+mkdir -p lib/ProtstT5
+git clone git@github.com:mheinzinger/ProstT5.git lib/ProtstT5
 ```
-git clone git@github.com:mheinzinger/ProstT5.git
+
+## Test data
+[Test data](https://raw.githubusercontent.com/soedinglab/MMseqs2/master/examples/QUERY.fasta) can be downloaded from git.
+```
+wget https://raw.githubusercontent.com/soedinglab/MMseqs2/master/examples/QUERY.fasta
 ```
 
+##  Approach
+For feasability testing use the `predict_3Di_encoderOnly.py` and `predict_AA_encoderOnly.py` in `ProstT5/scripts/` in concatenation.
+Alternatively we use foldseek generated 3Di sequences as starting point.
+Infer 3Di sequences using ProstT5 as follows
+```bash
+python lib/ProstT5/scripts/predict_3Di_encoderOnly.py --input data/test/test.fasta --output out/test/test.output.3Di.fasta --half 1 --model models/test/
+```
+To generate 3Di sequences from foldseek use
+```bash
 
+```
 
+The idea bind this is basically, if ProstT5 learns a family consensus component, this should be reflected in a 3Di to AA to 3Di inferrence concatenation.
+Herein, the 3Di to AA step should detect a family consensus of aminoacids for such 3Di structure.
+Afterwards, the AA to 3Di step is used to generate the 3Di family consensus from AA family consensus.
+Lastly, we want to compare the family consensus deteted by ProtstT5 to the profile search results from foldseek.
+
+## Temporary notes
+Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
