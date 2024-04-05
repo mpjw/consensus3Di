@@ -3,4 +3,8 @@ lib/*
 
 # ignore data directory
 data/*
+!data/test/
+data/test/*
+!data/test/test.fasta
+!data/test/test.3di.fasta
 
