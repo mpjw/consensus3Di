@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-db_ss_file = "out/test/scope.test.db_ss"
-db_source_file = "out/test/scope.test.db.source"
+db_ss_file = "data/test/scope.test.db_ss"
+db_source_file = "data/test/scope.test.db.source"
 out_fasta = "out/test/scope.foldseek.3Di.fasta"
 
 file_3Di = open(db_ss_file, "r")
