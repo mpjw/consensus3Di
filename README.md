@@ -17,10 +17,19 @@ git clone git@github.com:mheinzinger/ProstT5.git lib/ProtstT5
 ```
 
 ## Test data
-[Test data](https://raw.githubusercontent.com/soedinglab/MMseqs2/master/examples/QUERY.fasta) can be downloaded from git.
+As test data we use 500 randomly selected SCOPe v2.01 entries.
+Of there 2 entries had no sequence annotated in the [corresponding fasta file](https://scop.berkeley.edu/downloads/scopeseq-2.01/astral-scopedom-seqres-gd-sel-gs-bib-40-2.01.fa
+).
+Thus, we end up with 498 entries, which are stored in `data/test/scope.test.fasta`.
+To download the SCOPe v2.01 40% sequence redundancy fasta file used here, please run the command below.
 ```
-wget https://raw.githubusercontent.com/soedinglab/MMseqs2/master/examples/QUERY.fasta
+wget https://scop.berkeley.edu/downloads/scopeseq-2.01/astral-scopedom-seqres-gd-sel-gs-bib-40-2.01.fa
 ```
+
+Switch test data to SCOPe.
+Location on cluster `/home/sukhwan/foldseek-analysis/scope_pdb`.
+
+SCOPe entries with no sequence in 2.01: `'d3n55.1', 'd1sse.1'`
 
 ##  Approach
 For feasability testing use the `predict_3Di_encoderOnly.py` and `predict_AA_encoderOnly.py` in `ProstT5/scripts/` in concatenation.
@@ -31,7 +40,7 @@ python lib/ProstT5/scripts/predict_3Di_encoderOnly.py --input data/test/test.fas
 ```
 To generate 3Di sequences from foldseek use
 ```bash
-
+foldseek createdb structures/* scope.test.db
 ```
 
 The idea bind this is basically, if ProstT5 learns a family consensus component, this should be reflected in a 3Di to AA to 3Di inferrence concatenation.
