@@ -5,6 +5,6 @@ lib/*
 data/*
 !data/test/
 data/test/*
-!data/test/scope.test.fasta
-!data/test/scope.test.3di.fasta
+!data/test/scope.test.AA.fasta
+!data/test/scope.test.3Di.fasta
 
