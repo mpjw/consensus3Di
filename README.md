@@ -28,6 +28,13 @@ wget https://scop.berkeley.edu/downloads/scopeseq-2.01/astral-scopedom-seqres-gd
 Location on cluster `/home/sukhwan/foldseek-analysis/scope_pdb`.
 SCOPe entries with no sequence in 2.01: `'d3n55.1', 'd1sse.1'`
 
+In order to create test data fasta files, use foldseeks `convert2fasta` utility.
+```bash
+foldseek convert2fasta scope.test.db scope.test.AA.fasta
+foldseek lndb scope.test.db_h scope.test.db_ss_h
+foldseek convert2fasta scope.test.db_ss scope.test.3Di.fasta
+```
+
 ##  Approach
 For feasability testing use the `predict_3Di_encoderOnly.py` and `predict_AA_encoderOnly.py` in `ProstT5/scripts/` in concatenation.
 Alternatively we use foldseek generated 3Di sequences as starting point.
@@ -52,6 +59,41 @@ python lib/ProstT5/scripts/translate.py --input out/test/scope.foldseek.3Di.fast
 ```bash
 python lib/ProstT5/scripts/predict_AA_encoderOnly.py --input out/test/scope.foldseek.3Di.fasta --output out/test/test.output.3Di.fasta --half 1 --model models/test/
 ```
+
+### Foldseek 3Di profile computation
+To compare the 3Di sequences predicted by ProstT5 double prediction, we use foldseek 3Di sequence profiles.
+First, create a foldseek database for the whole of SCOPe 20.1 40%
+```bash
+foldseek createdb path/to/scope_201_40 scope_full
+foldseek createdb structures subset_scope
+```
+Now run two searches one with one iteration and one with two.
+```bash
+foldseek search subsert_scope scope_full res_it_1 tmp1
+# two iterations
+foldseek search subsert_scope scope_full res_it_2 tmp2 --num-iterations 2
+```
+Next, we need to compute a 3Di profile from the search results
+```bash
+foldseek result2profile subset_scope_ss scope_full_ss result_it_2 profile_it_2
+```
+With this we can compute consensus sequences.
+```bash
+foldseek profile2consensus profile_it_2 cons_db
+```
+Now, link the full database header file to the concensus_db folder
+```bash
+foldseek lndb path/to/scope.full_h path/to/consenesus_db_h
+```
+
+Finally, compile a fasta file from the consensus database.
+```bash
+foldseek convert2fasta cons_db cons.fasta
+```
+
+### Comparison
+1. Baseline 3Di sequences versus double inferrence ProstT5 sequences
+2. Foldseek profile sequences (with 1 and 2 iterations) to double infered ProstT5 3Di
 
 ## Temporary notes
 Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
