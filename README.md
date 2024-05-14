@@ -22,8 +22,7 @@ Required [ProstT5](https://github.com/mheinzinger/ProstT5) software must be clon
 mkdir -p lib/ProtstT5
 git clone git@github.com:mheinzinger/ProstT5.git lib/ProtstT5
 ```
-
-The code for foldseek benchmarking can be found at [https://github.com/steineggerlab/foldseek-analysis/blob/main/scopbenchmark/scripts/runFoldseek.sh](https://github.com/steineggerlab/foldseek-analysis/blob/main/scopbenchmark/scripts/runFoldseek.sh).
+Additionally, the foldseek [benchmarking script](https://github.com/steineggerlab/foldseek-analysis/blob/main/scopbenchmark/scripts/runFoldseek.sh) is needed.
 
 ## Test data
 As test data we use 500 randomly selected SCOPe entries taken from SCOPe v2.01 at 40% sequence identity.
@@ -31,17 +30,35 @@ Of there 2 entries had no sequence annotated in the [corresponding fasta file](h
 ).
 Thus, we end up with 498 entries, which are stored in `data/test/scope.test.fasta`.
 To download the SCOPe v2.01 40% sequence redundancy fasta file used here, please run the command below.
-```
+```bash
 wget https://scop.berkeley.edu/downloads/scopeseq-2.01/astral-scopedom-seqres-gd-sel-gs-bib-40-2.01.fa
 ```
 Location on cluster `/home/sukhwan/foldseek-analysis/scope_pdb`.
 SCOPe entries with no sequence in 2.01: `'d3n55.1', 'd1sse.1'`
 
-In order to create test data fasta files, use foldseeks `convert2fasta` utility.
+### foldseek database
+First, create a foldseek database for the whole of SCOPe 20.1 40%
+Compile foldseek databases on the full SCOPe v2.01 and the 498 subsequences
+
 ```bash
-foldseek convert2fasta scope.test.db scope.test.AA.fasta
-foldseek lndb scope.test.db_h scope.test.db_ss_h
-foldseek convert2fasta scope.test.db_ss scope.test.3Di.fasta
+# create foldseek database on full SCOPe 2.01
+mkdir -p data/dbs/scope_full
+foldseek createdb --mask-bfactor-threshold -10000 data/structures/full_scope_pdb scope_full/scope_full
+
+# create subset database from SCOPe
+mkdir -p data/dbs/subset_scope
+foldseek createdb --mask-bfactor-threshold -10000 data/structures/subsset_scope_pdb subset_scope/subset_scope
+```
+
+In order to create test data fasta files, use foldseeks `convert2fasta` utility.
+First create a fasta file of amino acid sequences for the SCOPe subset database.
+```bash
+foldseek convert2fasta data/dbs/subset_scope/subset_scope data/dbs/subset_scope.AA.fasta
+```
+Next, generate 3Di sequences from foldseek and compile a fasta for these.
+```bash
+foldseek lndb data/dbs/subset_scope/subset_scope.db_h data/dbs/subset_scope/subset_scope.db_ss_h
+foldseek convert2fasta data/dbs/subset_scope/subset_scope.db_ss data/dbs/subset_scope.3Di.fasta
 ```
 
 ##  Approach
@@ -50,10 +67,6 @@ Alternatively we use foldseek generated 3Di sequences as starting point.
 Infer 3Di sequences using ProstT5 as follows
 ```bash
 python lib/ProstT5/scripts/predict_3Di_encoderOnly.py --input data/test/test.fasta --output out/test/test.output.3Di.fasta --half 1 --model models/test/
-```
-To generate 3Di sequences from foldseek use
-```bash
-foldseek createdb structures/* scope.test.db
 ```
 The idea bind this is basically, if ProstT5 learns a family consensus component, this should be reflected in a 3Di to AA to 3Di inferrence concatenation.
 Herein, the 3Di to AA step should detect a family consensus of aminoacids for such 3Di structure.
@@ -71,11 +84,6 @@ python lib/ProstT5/scripts/predict_AA_encoderOnly.py --input out/test/scope.fold
 
 ### Foldseek 3Di profile computation
 To compare the 3Di sequences predicted by ProstT5 double prediction, we use foldseek 3Di sequence profiles.
-First, create a foldseek database for the whole of SCOPe 20.1 40%
-```bash
-foldseek createdb --mask-bfactor-threshold -10000 path/to/scope_201_40 scope_full
-foldseek createdb --mask-bfactor-threshold -10000 structures subset_scope
-```
 Now run two searches one with one iteration and one with two.
 ```bash
 foldseek search subsert_scope scope_full res_it_1 tmp1
@@ -131,6 +139,7 @@ This data can be found on hulk at ´/path/to/scope´
 ## Temporary notes
 Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
 
-
+Questions
+- execute foldseek benchmarking from `/home/sukhwan/foldseek-analysis/`
 
 
