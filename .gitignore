@@ -5,6 +5,6 @@ lib/*
 data/*
 !data/test/
 data/test/*
-!data/test/scope.test.AA.fasta
-!data/test/scope.test.3Di.fasta
+!data/subset_scope.AA.fasta
+!data/subset_scope.3Di.fasta
 !data/mat3di.tsv
