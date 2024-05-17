@@ -108,7 +108,7 @@ Finally, compile a fasta file from the consensus database.
 foldseek convert2fasta cons_db cons.fasta
 ```
 
-### Comparison
+## Comparison
 The comparison of 3Di sequences used mainly sequence identity and a 3Di substitution matrix based comparison.
 Results show that all 3Di sequences recoded from a ProstT5 3Di inferred baseline show very low sequence identity with foldseek consensus.
 ![foldseek consensus ProstT5](out/foldseek_consensus.prostt5.3Di.seq_identity.hist.png)
@@ -134,6 +134,23 @@ Todo
 Next we use the ProstT5 recoded 3Di sequences from foldseek baseline 3Di for recompiling the [foldseek papaer](https://doi.org/10.1038/s41587-023-01773-0) benchmark. 
 Therefore we initially need the [SCOPe](https://wwwuser.gwdg.de/~compbiol/foldseek/scop40pdb.tar.gz) 40% sequence redundance database.
 This data can be found on hulk at ´/path/to/scope´
+```bash
+# cloning and compiling foldseek
+git clone git@github.com:steineggerlab/foldseek.git lib/foldseek
+mkdir lib/foldseek/build
+cd lib/foldseek/build
+# required conda packages: c-compiler cxx-compiler rust cmake
+cmake ..
+make -j
+```
+Now we can run the foldseek benchmark
+```bash
+# fist get a cluster node
+srun -c 64 -t 1-0 --pty /bin/bash
+
+# run foldseek benchmark and pipe std out
+./src/benchmark_foldseek.sh > log/foldseek.benchmark.log
+```
 
 
 ## Temporary notes
