@@ -23,6 +23,9 @@ mkdir -p lib/ProtstT5
 git clone git@github.com:mheinzinger/ProstT5.git lib/ProtstT5
 ```
 Additionally, the foldseek [benchmarking script](https://github.com/steineggerlab/foldseek-analysis/blob/main/scopbenchmark/scripts/runFoldseek.sh) is needed.
+```bash
+git clone git@github.com:steineggerlab/foldseek-analysis.git lib/foldseek-analysis
+```
 
 ## Test data
 As test data we use 500 randomly selected SCOPe entries taken from SCOPe v2.01 at 40% sequence identity.
@@ -86,9 +89,9 @@ python lib/ProstT5/scripts/predict_AA_encoderOnly.py --input out/test/scope.fold
 To compare the 3Di sequences predicted by ProstT5 double prediction, we use foldseek 3Di sequence profiles.
 Now run two searches one with one iteration and one with two.
 ```bash
-foldseek search subsert_scope scope_full res_it_1 tmp1
+foldseek search subset_scope scope_full res_it_1 tmp1
 # two iterations
-foldseek search subsert_scope scope_full res_it_2 tmp2 --num-iterations 2
+foldseek search subset_scope scope_full res_it_2 tmp2 --num-iterations 2
 ```
 Next, we need to compute a 3Di profile from the search results
 ```bash
@@ -148,10 +151,17 @@ Now we can run the foldseek benchmark
 # fist get a cluster node
 srun -c 64 -t 1-0 --pty /bin/bash
 
+./lib/foldseek/build/src/foldseek search ./out/dbs/foldseek_recoded/subset_scope_recoded ./data/dbs/subset_scope_no_ca/subset_scope ./out/benchmark/foldseek/results ./out/benchmark/foldseek/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
+
+./lib/foldseek/build/src/foldseek convertalis ./out/dbs/foldseek_recoded/subset_scope_recoded ./data/dbs/subset_scope_no_ca/subset_scope ./out/benchmark/foldseek/results ./out/benchmark/foldseek/alignment.ma
+
 # run foldseek benchmark and pipe std out
 ./src/benchmark_foldseek.sh > log/foldseek.benchmark.log
 ```
-
+Next evaluate the benchmark using the `scopbenchmark/scripts/bench.noselfhit.awk` script in the `foldseek-analysis` repository.
+```bash
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/iter2/bench_iter2) > out/benchmark/foldseek.rocx
+```
 
 ## Temporary notes
 Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
