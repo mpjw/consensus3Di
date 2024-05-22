@@ -179,9 +179,14 @@ awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,f
 
 Benchmarking full scope structures
 ```bash
+# old command generating foldseekaln which compiled correct benchmark statistics
+# 1058  2024/05/20 15:41:38 lib/foldseek/build/src/foldseek easy-search data/structures/full_scope_pdb/ data/structures/full_scope_pdb/ out/benchmark/foldseek/scope_full/foldseekaln out/benchmark/foldseek/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
+# mpjw@hulk:consensus3Di(main)$ ll out/benchmark/foldseek/scope_full/foldseekaln
+# -rw-rw-r-- 1 mpjw mpjw 284M May 20 15:43 out/benchmark/foldseek/scope_full/foldseekaln
+
 mkdir out/benchmark/foldseek/scope_full
-foldseek easy-search data/structures/full_scope_pdb/ data/structures/full_scope_pdb/ out/benchmark/foldseek/scope_full/foldseekaln out/benchmark/foldseek/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
-lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/foldseekaln) > out/benchmark/scope_full.rocx
+foldseek easy-search data/structures/full_scope_pdb/ data/structures/full_scope_pdb/ out/benchmark/foldseek/scope_full/scope_full.ma out/benchmark/foldseek/tmp2/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/scope_full.ma) > out/benchmark/scope_full.rocx
 awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.rocx
 # 0.861651 0.48617 0.105976
 
@@ -213,11 +218,28 @@ srun -c 64 -t 1-0 --pty /bin/bash
 
 ./lib/foldseek/build/src/foldseek convertalis ./out/dbs/scope_recoded/scope_recoded ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/scope_full/results ./out/benchmark/foldseek/scope_full/alignment.ma
 
-lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/alignment.ma) > out/benchmark/scope_full.recoded.rocx
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/alignment.ma | sed -E 's|.pdb||g') > out/benchmark/scope_full.recoded.rocx
 
 awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.recoded.rocx
 # 0 0 0
 ```
+Same result for using a search with two iterations search
+```bash
+./lib/foldseek/build/src/foldseek search ./out/dbs/scope_recoded/scope_recoded ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/scope_full/iter2/results ./out/benchmark/foldseek/scope_full/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10 --num-iterations 2 > 20240522.foldseek.cope_full.bench.iter2.log
+
+./lib/foldseek/build/src/foldseek convertalis ./out/dbs/scope_recoded/scope_recoded ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/scope_full/iter2/results ./out/benchmark/foldseek/scope_full/alignment.iter2.ma
+
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/alignment.iter2.ma) > out/benchmark/scope_full.recoded.iter2.rocx
+
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.recoded.iter2.rocx
+# 0 0 0
+```
+
+TODO:
+Validate the hypothesis from Victors work.
+When generating 3Di sturcture information from AA information using ProstT5 (encoder only), the performance is better, if disregarding c_alpha information for foldseek.
+(And also for supplying extra c_alpha informsation)
+
 
 ## Temporary notes
 Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
