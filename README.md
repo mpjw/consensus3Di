@@ -162,11 +162,62 @@ srun -c 64 -t 1-0 --pty /bin/bash
 ```
 Next evaluate the benchmark using the `scopbenchmark/scripts/bench.noselfhit.awk` script in the `foldseek-analysis` repository.
 ```bash
-lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/iter2/bench_iter2) > out/benchmark/foldseek.rocx
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/alignment.ma | sed -E 's|.pdb||g') > out/benchmark/foldseek.rocx
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/foldseek.rocx
+# 0.00183202 0.00117703 0.000271187
+```
+
+Now repeat the same process for the unmodified foldseek database for the subset SCOPe database.
+```bash
+mkdir out/benchmark/foldseek/baseline_iter2
+./lib/foldseek/build/src/foldseek search ./data/dbs/subset_scope_no_ca/subset_scope ./data/dbs/subset_scope_no_ca/subset_scope ./out/benchmark/foldseek/baseline_iter2/scope_subset ./out/benchmark/foldseek/tmp_baseline/ --threads 64 -s 9.5 --max-seqs 2000 -e 10 --num-iterations 2
+./lib/foldseek/build/src/foldseek convertalis data/dbs/subset_scope_no_ca/subset_scope ./data/dbs/subset_scope_no_ca/subset_scope ./out/benchmark/foldseek/baseline_iter2/scope_subset ./out/benchmark/foldseek/baseline_aln.ma
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/baseline_aln.ma | sed -E 's|.pdb||g') > out/benchmark/baseline.rocx
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/baseline.rocx
+# 0.00203293 0.00147389 0.00036441
+```
+
+Benchmarking full scope structures
+```bash
+mkdir out/benchmark/foldseek/scope_full
+foldseek easy-search data/structures/full_scope_pdb/ data/structures/full_scope_pdb/ out/benchmark/foldseek/scope_full/foldseekaln out/benchmark/foldseek/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/foldseekaln) > out/benchmark/scope_full.rocx
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.rocx
+# 0.861651 0.48617 0.105976
+
 ```
 
 ### Plotting benchmark results
 First we need to prepare plotting data from `.rocx` file.
+
+## ProstT5 recoding of whole SCOPe set
+Benchmark results from the subset show wierd perfomance statistics.
+Thus, we compile the benchmark with 3Di for the whole SCOPe data.
+```bash
+# get the 3Di fasta file from the database
+foldseek lndb data/dbs/scope_full/scope_full_h data/dbs/scope_full/scope_full_ss_h
+foldseek convert2fasta data/dbs/scope_full/scope_full_ss data/scope.3Di.fasta
+
+# next recode 3Di sequences with ProstT5
+python lib/ProstT5/scripts/predict_AA_encoderOnly.py --input data/scope.3Di.fasta --output out/prostt5/scope.recoded.AA.fasta --half 1 --model model/test/
+python lib/ProstT5/scripts/predict_3Di_encoderOnly.py --input out/prostt5/scope.recoded.AA.fasta --output out/prostt5/scope.foldseek3Di.recoded.3Di.fasta --half 1 --model model/test/
+
+# generate foldseek database
+python lib/ProstT5/scripts/generate_foldseek_db.py data/scope.AA.fasta out/prostt5/scope.foldseek3Di.recoded.3Di.fasta out/dbs/scope_recoded/scope_recoded
+
+ln data/dbs/scope_full/scope_full.lookup out/dbs/scope_recoded/scope_recoded.lookup
+
+# benchmarking
+srun -c 64 -t 1-0 --pty /bin/bash
+./lib/foldseek/build/src/foldseek search ./out/dbs/scope_recoded/scope_recoded ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/scope_full/results ./out/benchmark/foldseek/scope_full/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10
+
+./lib/foldseek/build/src/foldseek convertalis ./out/dbs/scope_recoded/scope_recoded ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/scope_full/results ./out/benchmark/foldseek/scope_full/alignment.ma
+
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/scope_full/alignment.ma) > out/benchmark/scope_full.recoded.rocx
+
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.recoded.rocx
+# 0 0 0
+```
 
 ## Temporary notes
 Want to compare PSI Blast like foldseek (profile) searches -> are ProstT5 generated 3Di sequences really closer to the family consensus?
