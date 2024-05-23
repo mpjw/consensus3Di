@@ -235,10 +235,32 @@ awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,f
 # 0 0 0
 ```
 
-TODO:
-Validate the hypothesis from Victors work.
-When generating 3Di sturcture information from AA information using ProstT5 (encoder only), the performance is better, if disregarding c_alpha information for foldseek.
+## Validating the hypothesis
+The hypothesis from Victors work was that structural comparison is more sensitive when generating 3Di sturcture information from AA information using ProstT5 (encoder only), compared to foldseek generated 3Di data, if disregarding c_alpha information for foldseek.
 (And also for supplying extra c_alpha informsation)
+
+Therefore, we first infer 3Di structers using the encoder only ProstT5.
+```bash
+# predict 3Di structures using encoder only from ProstT5
+# srun -p gpu --gres=gpu:1 -c 4 -t 1-0 --pty /bin/bash
+python lib/ProstT5/scripts/predict_3Di_encoderOnly.py --input data/scope.AA.fasta --output out/prostt5/scope.prostt5.3Di.fasta --half 1 --model model/test/
+
+# create foldseek database from ProstT5 3Di structures
+python lib/ProstT5/scripts/generate_foldseek_db.py data/scope.AA.fasta out/prostt5/scope.prostt5.3Di.fasta out/dbs/prostt5_scope/prostt5_scope | tee log/$(date +%Y%m%d).scope_full.prostt5.3Di.generate_foldseek_db.log
+ln data/dbs/scope_full/scope_full.lookup out/dbs/prostt5_scope/prostt5_scope.lookup
+
+# benchmarking
+# srun -c 64 -t 1-0 --pty /bin/bash
+mkdir -p out/benchmark/foldseek/prostt5_scope/tmp
+./lib/foldseek/build/src/foldseek search ./out/dbs/prostt5_scope/prostt5_scope ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/prostt5_scope/pt5_scope_bench ./out/benchmark/foldseek/prostt5_scope/tmp/ --threads 64 -s 9.5 --max-seqs 2000 -e 10 | tee log/$(date +%Y%m%d).pt5_scope_benchmark.log
+
+./lib/foldseek/build/src/foldseek convertalis ./out/dbs/prostt5_scope/prostt5_scope ./data/dbs/scope_full_no_ca/scope_full ./out/benchmark/foldseek/prostt5_scope/pt5_scope_bench ./out/benchmark/foldseek/prostt5_scope/alignment.ma | tee log/$(date +%Y%m%d).pt5_scope_benchmark.convertalis.log
+
+lib/foldseek-analysis/scopbenchmark/scripts/bench.noselfhit.awk lib/foldseek-analysis/scopbenchmark/data/scop_lookup.fix.tsv <(cat out/benchmark/foldseek/prostt5_scope/alignment.ma | sed -E 's|.pdb||g') > out/benchmark/scope_full.prostt5.3Di.rocx
+
+awk '{ famsum+=$3; supfamsum+=$4; foldsum+=$5}END{print famsum/NR,supfamsum/NR,foldsum/NR}' out/benchmark/scope_full.prostt5.3Di.rocx | tee out/$(date +%Y%m%d).scope_full.prostt5_3Di.foldseek_benchmark.txt
+# 0.841136 0.444706 0.0848822
+```
 
 
 ## Temporary notes
