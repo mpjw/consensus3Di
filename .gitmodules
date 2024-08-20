@@ -1,0 +1,4 @@
+[submodule "lib/foldseek"]
+	path = lib/foldseek
+	url = git@github.com:mpjw/foldseek.git
+	branch = prostt5-ctranslate2
